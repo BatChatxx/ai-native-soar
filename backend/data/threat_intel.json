@@ -50,6 +50,42 @@
       "reputation": "clean",
       "tags": ["legitimate"],
       "source": "local-feed"
+    },
+    "cskhxxps.pm5s5vg.shop": {
+      "score": 96,
+      "reputation": "malicious",
+      "tags": ["phishing", "brand-impersonation", "apple"],
+      "source": "local-feed"
+    },
+    "rfdgtahqp.us": {
+      "score": 94,
+      "reputation": "malicious",
+      "tags": ["phishing", "cloud-impersonation"],
+      "source": "local-feed"
+    },
+    "rikdoiitc.us": {
+      "score": 93,
+      "reputation": "malicious",
+      "tags": ["phishing", "healthcare-impersonation"],
+      "source": "local-feed"
+    },
+    "segurosmail.com": {
+      "score": 90,
+      "reputation": "malicious",
+      "tags": ["phishing", "spoofing"],
+      "source": "local-feed"
+    },
+    "sorven.my.id": {
+      "score": 92,
+      "reputation": "malicious",
+      "tags": ["phishing", "spoofing"],
+      "source": "local-feed"
+    },
+    "share.google": {
+      "score": 85,
+      "reputation": "suspicious",
+      "tags": ["typosquatting", "phishing"],
+      "source": "local-feed"
     }
   },
   "hashes": {

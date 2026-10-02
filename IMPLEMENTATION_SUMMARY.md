@@ -12,6 +12,7 @@ The AI-Native SOAR platform is a working end-to-end system deployed via Docker C
 - **Interactive AI analysis** (summaries + custom Q&A with context-aware answers)
 - **Token-budget management** to prevent context overflow on long reports
 - **LLM profile management** (multiple configurable models, switchable at runtime)
+- **Phishing email analysis** (.eml upload → parse → IOC → intel → AI → incident)
 - **Authentication** (default admin account + login + password change)
 - **Client-side routing** with browser back/forward support
 

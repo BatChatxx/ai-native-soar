@@ -125,12 +125,14 @@ from routers.alerts_clean import router as alerts_clean_router
 from routers.dashboard_clean import router as dashboard_clean_router
 from routers.settings_clean import router as settings_clean_router
 from routers.auth_clean import router as auth_clean_router
+from routers.phishing_clean import router as phishing_clean_router
 
 app.include_router(incidents_clean_router, prefix="/api/v1")
 app.include_router(alerts_clean_router, prefix="/api/v1")
 app.include_router(dashboard_clean_router, prefix="/api/v1")
 app.include_router(settings_clean_router, prefix="/api/v1")
 app.include_router(auth_clean_router, prefix="/api/v1")
+app.include_router(phishing_clean_router, prefix="/api/v1")
 
 
 # ============= Global Exception Handlers =============

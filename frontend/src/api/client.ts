@@ -474,3 +474,77 @@ export function getMe(): Promise<{
 }> {
   return request('/auth/me')
 }
+
+// ---------- Phishing analysis ----------
+
+export interface PhishingAuthResults {
+  spf: string | null
+  dkim: string | null
+  dmarc: string | null
+  raw: string | null
+}
+
+export interface PhishingAnalysisResult {
+  filename: string
+  size: number
+  parsed: {
+    subject: string
+    sender: string
+    to: string
+    cc: string | null
+    date: string
+    message_id: string
+    return_path: string
+    routing: { raw: string; ip: string | null; from: string | null }[]
+    auth_results: PhishingAuthResults
+    text_body: string
+    html_body: string
+    urls: string[]
+    attachments: { filename: string; content_type: string }[]
+  }
+  indicators: {
+    domains: string[]
+    ips: string[]
+    urls: string[]
+  }
+  dns: Record<string, { domain: string; a_records: string[]; mx_records: string[]; error: string | null }>
+  scored: { type: string; value: string; score: number; reputation: string }[]
+  verdict: { is_likely_phishing: boolean }
+}
+
+export async function analyzePhishingEmail(file: File): Promise<PhishingAnalysisResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const res = await fetch(`${BASE}/phishing/analyze`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => null)
+    throw new Error(err?.detail || `Upload failed: ${res.status}`)
+  }
+  return res.json()
+}
+
+export async function aiPhishingAnalysis(
+  parsed: PhishingAnalysisResult['parsed'],
+  indicators: PhishingAnalysisResult['indicators'],
+  scored: PhishingAnalysisResult['scored']
+): Promise<{ analysis: string }> {
+  return request('/phishing/ai-analysis', {
+    method: 'POST',
+    body: JSON.stringify({ parsed, indicators, scored }),
+  })
+}
+
+export function createIncidentFromPhishing(data: {
+  subject: string
+  sender: string
+  indicators: { domains: string[]; ips: string[]; urls: string[] }
+  ai_analysis: string
+}): Promise<{ incident_id: number; incident_number: string; title: string }> {
+  return request('/phishing/create-incident', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}

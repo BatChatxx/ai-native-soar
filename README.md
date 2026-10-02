@@ -100,10 +100,18 @@ Common integration abstraction with:
 - No arbitrary unsandboxed code execution
 
 ## AI Investigation Architecture
-
 - Operates within incident context
 - Registered tools: get_incident, get_evidence, get_process_tree, search_siem, lookup_hash, lookup_ip, lookup_user, search_related_incidents
 - Dangerous actions require approval workflow
+
+## Phishing Email Analysis
+
+The `/phishing` page ingests `.eml` files and runs an automated phishing playbook:
+1. **Parse** message headers, routing table (Received chain), and SPF/DKIM/DMARC auth results
+2. **Extract** indicators of compromise (domains, URLs, IPs)
+3. **DNS / WhoIs** lookups (nslookup-equivalent) + local threat-intel scoring (optional VirusTotal)
+4. **AI analysis** for a verdict, red flags, attack purpose, and recommendations
+5. **One-click** conversion into a full incident with IOCs as observables
 
 ## Investigation Graph
 
@@ -169,6 +177,7 @@ docker-compose up -d
   - Dashboard: `/`
   - Incidents: `/incidents` (+ detail `/incidents/:id`)
   - Alerts: `/alerts` (+ detail `/alerts/:id`)
+  - Phishing Analysis: `/phishing` (upload .eml files)
   - Settings: `/settings`
   - Login: `/login` (default account: **admin / admin**)
 - **Backend API**: http://localhost:8000 (Swagger UI at `/docs`)
@@ -207,6 +216,9 @@ Interactive API docs (Swagger UI) are available at `http://localhost:8000/docs`.
 | GET/POST/PUT/DELETE | `/api/v1/settings/llm` | LLM profile management |
 | POST | `/api/v1/auth/login` | Login (default admin/admin) |
 | POST | `/api/v1/auth/change-password` | Change password |
+| POST | `/api/v1/phishing/analyze` | Upload .eml, run phishing analysis |
+| POST | `/api/v1/phishing/ai-analysis` | AI analysis of parsed email |
+| POST | `/api/v1/phishing/create-incident` | Convert analysis → incident |
 
 ## Security Considerations
 
@@ -227,7 +239,7 @@ Environment variables are loaded from `.env` files:
 
 ## License
 
-Proprietary - All rights reserved.
+MIT License — see the [LICENSE](LICENSE) file for details. This project is fully open source.
 
 ## Contributing
 

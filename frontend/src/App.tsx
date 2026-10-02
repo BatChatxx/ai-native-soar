@@ -48,9 +48,13 @@ import {
   login,
   changePassword,
   getMe,
+  PhishingAnalysisResult,
+  analyzePhishingEmail,
+  aiPhishingAnalysis,
+  createIncidentFromPhishing,
 } from './api/client'
 
-type Tab = 'dashboard' | 'incidents' | 'alerts' | 'settings'
+type Tab = 'dashboard' | 'incidents' | 'alerts' | 'phishing' | 'settings'
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: '#dc2626',
@@ -120,6 +124,7 @@ export default function App() {
           <Route path="/incidents/:id" element={<IncidentDetailRoute />} />
           <Route path="/alerts" element={<AlertsView />} />
           <Route path="/alerts/:id" element={<AlertDetailRoute />} />
+          <Route path="/phishing" element={<PhishingView />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<DashboardView />} />
         </Routes>
@@ -136,6 +141,7 @@ function Header({ user, onLogout }: { user: string | null; onLogout: () => void 
     { id: 'dashboard', path: '/', label: 'Dashboard' },
     { id: 'incidents', path: '/incidents', label: 'Incidents' },
     { id: 'alerts', path: '/alerts', label: 'Alerts' },
+    { id: 'phishing', path: '/phishing', label: 'Phishing' },
     { id: 'settings', path: '/settings', label: 'Settings' },
   ]
 
@@ -197,6 +203,196 @@ function Header({ user, onLogout }: { user: string | null; onLogout: () => void 
         )}
       </div>
     </header>
+  )
+}
+
+// ===================== Phishing View =====================
+
+function PhishingView() {
+  const [result, setResult] = React.useState<PhishingAnalysisResult | null>(null)
+  const [aiText, setAiText] = React.useState<string | null>(null)
+  const [loading, setLoading] = React.useState(false)
+  const [aiLoading, setAiLoading] = React.useState(false)
+  const [promoteMsg, setPromoteMsg] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+  const fileInput = React.useRef<HTMLInputElement>(null)
+
+  const handleFile = async (file: File) => {
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    setAiText(null)
+    try {
+      setResult(await analyzePhishingEmail(file))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Analysis failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAI = async () => {
+    if (!result) return
+    setAiLoading(true)
+    setAiText(null)
+    try {
+      const res = await aiPhishingAnalysis(result.parsed, result.indicators, result.scored)
+      setAiText(res.analysis)
+    } catch (e) {
+      setAiText(e instanceof Error ? `AI analysis failed: ${e.message}` : 'AI analysis failed')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const handleCreateIncident = async () => {
+    if (!result) return
+    try {
+      const res = await createIncidentFromPhishing({
+        subject: result.parsed.subject,
+        sender: result.parsed.sender,
+        indicators: result.indicators,
+        ai_analysis: aiText ?? '',
+      })
+      setPromoteMsg(`Created incident ${res.incident_number}`)
+    } catch (e) {
+      setPromoteMsg(e instanceof Error ? `Failed: ${e.message}` : 'Failed to create incident')
+    }
+  }
+
+  return (
+    <div>
+      <h2 style={{ marginTop: 0 }}>Phishing Email Analysis</h2>
+
+      {/* Upload area */}
+      <div
+        onClick={() => fileInput.current?.click()}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault()
+          const f = e.dataTransfer.files?.[0]
+          if (f) handleFile(f)
+        }}
+        style={{
+          border: '2px dashed #d1d5db',
+          borderRadius: '8px',
+          padding: '2rem',
+          textAlign: 'center',
+          background: '#fff',
+          cursor: 'pointer',
+          marginBottom: '1rem',
+        }}
+      >
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".eml"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) handleFile(f)
+          }}
+        />
+        <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#374151' }}>
+          Drop an .eml file here, or click to select
+        </div>
+        <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.5rem' }}>
+          Parses headers, routing, SPF/DKIM/DMARC, extracts IOCs, and scores against threat intel
+        </div>
+      </div>
+
+      {loading && <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>Analyzing…</div>}
+      {error && <div style={{ color: '#dc2626', padding: '1rem' }}>{error}</div>}
+
+      {/* Result */}
+      {result && (
+        <div>
+          {/* Verdict */}
+          <div
+            style={{
+              background: result.verdict.is_likely_phishing ? '#fef2f2' : '#ecfdf5',
+              border: `1px solid ${result.verdict.is_likely_phishing ? '#fecaca' : '#bbf7d0'}`,
+              borderRadius: '8px',
+              padding: '1rem 1.5rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: result.verdict.is_likely_phishing ? '#dc2626' : '#16a34a' }}>
+              {result.verdict.is_likely_phishing ? '⚠ Likely Phishing' : '✓ Appears Legitimate'}
+            </div>
+          </div>
+
+          {/* Basic info */}
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.5rem', boxShadow: '0 1px 2px rgba(0,0,0,0.06)', marginBottom: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>Email Details</h3>
+            <InfoRow label="Subject" value={result.parsed.subject} />
+            <InfoRow label="From" value={result.parsed.sender} />
+            <InfoRow label="To" value={result.parsed.to} />
+            <InfoRow label="Date" value={result.parsed.date} />
+            <InfoRow label="Return-Path" value={result.parsed.return_path} />
+            <InfoRow label="SPF" value={result.parsed.auth_results.spf ?? 'N/A'} />
+            <InfoRow label="DKIM" value={result.parsed.auth_results.dkim ?? 'N/A'} />
+            <InfoRow label="DMARC" value={result.parsed.auth_results.dmarc ?? 'N/A'} />
+            {result.parsed.attachments.length > 0 && (
+              <InfoRow label="Attachments" value={result.parsed.attachments.map((a) => a.filename).join(', ')} />
+            )}
+          </div>
+
+          {/* IOCs & scores */}
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.5rem', boxShadow: '0 1px 2px rgba(0,0,0,0.06)', marginBottom: '1rem' }}>
+            <h3 style={{ marginTop: 0 }}>Indicators & Threat Scores</h3>
+            <InfoRow label="URLs" value={result.indicators.urls.join(', ') || '(none)'} />
+            <div style={{ marginTop: '0.5rem' }}>
+              {result.scored.map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.4rem 0', borderBottom: '1px solid #f3f4f6' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{s.type}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.85rem', flex: 1 }}>{s.value}</span>
+                  {s.reputation && s.reputation !== 'unknown' && (
+                    <Badge
+                      text={`${s.reputation} ${s.score}`}
+                      color={s.reputation === 'malicious' ? '#dc2626' : s.reputation === 'suspicious' ? '#d97706' : '#16a34a'}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* AI analysis */}
+          <div style={{ background: '#fff', borderRadius: '8px', padding: '1.5rem', boxShadow: '0 1px 2px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0 }}>AI Analysis</h3>
+              <button onClick={handleAI} disabled={aiLoading} style={primaryBtnStyle}>
+                {aiLoading ? 'Analyzing…' : aiText ? 'Re-run AI' : 'Analyze with AI'}
+              </button>
+            </div>
+            {aiLoading && <div style={{ color: '#6b7280', marginTop: '0.75rem' }}>Generating analysis…</div>}
+            {aiText && (
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: '0.9rem', color: '#374151', marginTop: '0.75rem' }}>
+                {aiText}
+              </div>
+            )}
+
+            {/* Convert to incident */}
+            <div style={{ marginTop: '1rem', borderTop: '1px solid #f3f4f6', paddingTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button onClick={handleCreateIncident} style={promoteBtnStyle}>
+                Create Incident from this email
+              </button>
+              {promoteMsg && <span style={{ fontSize: '0.85rem', color: promoteMsg.startsWith('Failed') ? '#dc2626' : '#16a34a' }}>{promoteMsg}</span>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', gap: '1rem', padding: '0.35rem 0', fontSize: '0.9rem' }}>
+      <span style={{ width: '120px', flexShrink: 0, fontWeight: 600, color: '#6b7280' }}>{label}</span>
+      <span style={{ flex: 1, wordBreak: 'break-word' }}>{value}</span>
+    </div>
   )
 }
 
