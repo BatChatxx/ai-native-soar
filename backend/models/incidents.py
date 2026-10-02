@@ -126,7 +126,7 @@ class Incident(Base):
     tags = Column(String(500), nullable=True)
     
     # Metadata JSON
-        meta = Column(Text, nullable=True)
+    meta = Column(Text, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -179,7 +179,7 @@ class IncidentEvent(Base):
     description = Column(Text, nullable=True)
     
     # Metadata JSON
-        meta = Column(Text, nullable=True)
+    meta = Column(Text, nullable=True)
     
     # Risk level for the action
     risk_level = Column(String(20), nullable=True)  # READ, ENRICH, MODIFY, CONTAIN, EXECUTE, DESTRUCTIVE
@@ -254,7 +254,7 @@ class Observable(Base):
     confidence_source = Column(String(100), nullable=True)
     
     # Metadata JSON
-        meta = Column(Text, nullable=True)
+    meta = Column(Text, nullable=True)
     
     # Timestamps
     extracted_at = Column(DateTime, default=datetime.utcnow)

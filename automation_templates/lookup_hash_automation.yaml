@@ -19,16 +19,16 @@ tags:
 # Definition
 definition:
   actions:
-    - name: "Check VirusTotal"
+    - name: "Check ThreatIntel"
       type: "integration_action"
       args:
         hash: "{{ input.sha256 }}"
-      integration: "virustotal"
+      integration: "threat_intel"
       action: "lookup_hash"
       timeout: 30
       risk_level: "READ"
     
-    - name: "Check Microsoft Defender"
+    - name: "Check MockEDR"
       type: "integration_action"
       args:
         hash: "{{ input.sha256 }}"

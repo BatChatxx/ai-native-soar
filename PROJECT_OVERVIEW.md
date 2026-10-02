@@ -111,7 +111,7 @@ Once this workflow works reliably, expand capabilities incrementally.
 ┌─────────────────────────────────────────────────────────────┐
 │              Registered Integration Actions                  │
 │                                                             │
-│  Example: crowdstrike                                       │
+│  Example: generic_edr                                       │
 │    └─ get_host (READ)                                       │
 │    └─ get_process_tree (READ)                               │
 │    └─ contain_host (CONTAIN) → Requires approval            │
@@ -205,7 +205,7 @@ A common abstraction for all security tools:
 ```python
 Integration:
   - id: int
-  - integration_name: str (e.g., virustotal)
+  - integration_name: str (e.g., threat_intel)
   - display_name: str
   - enabled: bool
   - configuration: JSON
@@ -231,10 +231,10 @@ IntegrationAction:
   - enabled: bool
 ```
 
-**Example Integration**: CrowdStrike Falcon
+**Example Integration**: MockEDR (generic endpoint security)
 
 ```python
-crowdstrike:
+generic_edr:
   actions:
     - get_host:
         risk: READ
@@ -266,9 +266,9 @@ requires_approval: false
 
 steps:
   - id: vt_lookup
-    name: "VirusTotal IP Lookup"
+    name: "ThreatIntel IP Lookup"
     type: "integration"
-    integration: "virustotal"
+    integration: "threat_intel"
     action: "lookup_ip"
     input:
       - parameter: "ip_address"

@@ -1,17 +1,18 @@
-# CrowdStrike Integration Configuration
+# MockEDR / GenericEDR Integration Configuration
 # Version: 1.0.0
-# Description: CrowdStrike Falcon integration for endpoint security
+# Description: Abstract endpoint-security (EDR) integration — an example/vendor-neutral
+#              interface. Replace with a concrete EDR adapter in production.
 
 ---
 integration:
-  name: crowdstrike
-  display_name: CrowdStrike Falcon
+  name: generic_edr
+  display_name: MockEDR
   type: endpoint_security
   category: edr
 
-# API Configuration
+# API Configuration (example/neutral endpoint)
 api:
-  base_url: "https://falcon.crowdstrike.com"
+  base_url: "https://example-edr.local"
   api_version: "/api/v1"
   authentication:
     type: "oauth2"
@@ -19,12 +20,12 @@ api:
       - client_id
       - client_secret
   scopes:
-    - "FalconPlatformData.Read"
-    - "FalconPlatformData.Write"
-    - "FalconEndpoint.Read"
-    - "FalconEndpoint.Write"
-    - "FalconIncident.Read"
-    - "FalconIncident.Write"
+    - "edr.platform.read"
+    - "edr.platform.write"
+    - "edr.endpoint.read"
+    - "edr.endpoint.write"
+    - "edr.incident.read"
+    - "edr.incident.write"
 
 # Risk Classification for Actions
 risk_classifications:
@@ -36,27 +37,27 @@ risk_classifications:
   get_detection: "READ"
   get_alerts: "READ"
   get_incidents: "READ"
-  
+
   update_host_tags: "MODIFY_LOW"
   update_host_metadata: "MODIFY_LOW"
   create_incident: "MODIFY"
   update_incident: "MODIFY"
-  
+
   isolate_host: "CONTAIN"
   quarantine_endpoint: "CONTAIN"
   disable_account: "CONTAIN"
-  
+
   run_rtr_command: "EXECUTE"
   run_powershell: "EXECUTE"
   run_bash: "EXECUTE"
-  
+
   delete_host: "DESTRUCTIVE"
   delete_incident: "DESTRUCTIVE"
 
 # Available Actions
 actions:
   - name: get_host
-    description: Get host information from CrowdStrike
+    description: Get host information from the EDR
     risk: "READ"
     input_schema:
       type: object
@@ -64,7 +65,7 @@ actions:
       properties:
         host_id:
           type: string
-          description: "CrowdStrike host ID"
+          description: "EDR host ID"
         host_name:
           type: string
           description: "Host computer name"
@@ -86,7 +87,7 @@ actions:
           type: string
         status:
           type: string
-  
+
   - name: get_process_tree
     description: Get process tree for a host
     risk: "READ"
@@ -112,7 +113,7 @@ actions:
           type: string
         child_processes:
           type: array
-  
+
   - name: contain_host
     description: Isolate/host containment action
     risk: "CONTAIN"
@@ -135,9 +136,9 @@ actions:
           type: string
         action_type:
           type: string
-  
+
   - name: run_rtr_command
-    description: Execute RTR (Remote Terminal) command
+    description: Execute a remote endpoint command
     risk: "EXECUTE"
     requires_approval: true
     input_schema:
@@ -148,11 +149,11 @@ actions:
           type: string
         command:
           type: string
-          description: "Command to execute via RTR"
+          description: "Command to execute on the endpoint"
     output_schema:
       type: string
       description: "Command output"
-  
+
   - name: get_network_connections
     description: Get active network connections
     risk: "READ"
@@ -198,7 +199,6 @@ error_handling:
 
 # Monitoring
 monitoring:
-  health_check_endpoint: "/api/v1/integrations/crowdstrike/health"
+  health_check_endpoint: "/api/v1/integrations/generic_edr/health"
   last_sync: null
   last_sync_error: null
-

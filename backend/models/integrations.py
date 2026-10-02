@@ -23,8 +23,8 @@ class IntegrationCategory(str, Enum):
     FILE_SHARE = "file_share"
     IDENTITY = "identity"
     CLOUD = "cloud"
-    CROWDSTRIKE = "crowdstrike"
-    SENTINEL = "sentinel"
+    GENERIC_EDR = "generic_edr"
+    GENERIC_ENDPOINT = "generic_endpoint"
     VULN = "vulnerability"
     CUSTOM = "custom"
 
@@ -53,7 +53,7 @@ class IntegrationConfig(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # Integration name (e.g., "CrowdStrike", "SentinelOne")
+    # Integration name (e.g., "MockEDR", "GenericEndpoint")
     name = Column(String(100), unique=True, nullable=False)
     
     # Category
@@ -86,7 +86,7 @@ class IntegrationConfig(Base):
     version = Column(String(20), nullable=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     # Created/updated
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -106,7 +106,7 @@ class IntegrationInstance(Base):
     config_id = Column(Integer, ForeignKey("integration_configs.id", ondelete="CASCADE"), nullable=False)
     config = relationship("IntegrationConfig", foreign_keys=[config_id])
     
-    # Instance name (e.g., "crowdstrike-main", "sentinel-lab")
+    # Instance name (e.g., "generic_edr-main", "sentinel-lab")
     instance_name = Column(String(100), nullable=False)
     
     # Connection status
@@ -145,7 +145,7 @@ class IntegrationAction(Base):
     # Action name (e.g., "get_host", "get_process_tree", "contain_host")
     action_name = Column(String(100), nullable=False)
     
-    # Full action path (e.g., "crowdstrike.get_host")
+    # Full action path (e.g., "generic_edr.get_host")
     full_path = Column(String(150), nullable=True)
     
     # Description
@@ -176,7 +176,7 @@ class IntegrationAction(Base):
     enabled = Column(Boolean, default=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -260,7 +260,7 @@ class IntegrationExecution(Base):
     approval_id = Column(Integer, ForeignKey("approval_requests.id"), nullable=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     # Timestamp
     created_at = Column(DateTime, default=datetime.utcnow)

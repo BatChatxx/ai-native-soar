@@ -107,7 +107,7 @@ class AuditEvent(Base):
     error_message = Column(String(500), nullable=True)
     
     # Metadata JSON
-        meta = Column(Text, nullable=True)
+    meta = Column(Text, nullable=True)
     
     # Timestamp
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

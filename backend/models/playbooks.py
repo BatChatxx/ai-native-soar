@@ -84,7 +84,7 @@ class Playbook(Base):
     tags = Column(String(500), nullable=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     # Author
     author = Column(String(100), nullable=True)
@@ -161,7 +161,7 @@ class PlaybookStep(Base):
     status = Column(SQLEnum(PlaybookStepStatus), nullable=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     # Created
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -205,7 +205,7 @@ class PlaybookRun(Base):
     duration_ms = Column(Integer, nullable=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     # Relationships
     incident = relationship("Incident", foreign_keys=[incident_id], backref="playbook_runs")
@@ -251,7 +251,7 @@ class PlaybookStepRun(Base):
     approval_id = Column(Integer, ForeignKey("approval_requests.id"), nullable=True)
     
     # Metadata JSON
-        meta = Column(TextType, nullable=True)
+    meta = Column(TextType, nullable=True)
     
     # Created
     created_at = Column(DateTime, default=datetime.utcnow)

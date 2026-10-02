@@ -117,16 +117,16 @@ The AI-Native SOAR platform is a secure, local-first security orchestration, aut
 │  │  ┌──────────────────────────────────────────────────────┐ │ │
 │  │  │ Registered Integration Tools                            │ │ │
 │  │  │ ┌──────────────────────────────────────────────────┐ │ │ │
-│  │  │ │ virustotal.lookup_ip (READ)                      │ │ │ │
+│  │  │ │ threat_intel.lookup_ip (READ)                      │ │ │ │
 │  │  │ └──────────────────────────────────────────────────┘ │ │ │
 │  │  │ ┌──────────────────────────────────────────────────┐ │ │ │
 │  │  │ │ threatcrowd.lookup_domain (ENRICH)               │ │ │ │
 │  │  │ └──────────────────────────────────────────────────┘ │ │ │
 │  │  │ ┌──────────────────────────────────────────────────┐ │ │ │
-│  │  │ │ crowdstrike.get_host (READ)                      │ │ │ │
+│  │  │ │ generic_edr.get_host (READ)                      │ │ │ │
 │  │  │ └──────────────────────────────────────────────────┘ │ │ │
 │  │  │ ┌──────────────────────────────────────────────────┐ │ │ │
-│  │  │ │ crowdstrike.contain_host (CONTAIN)               │ │ │ │
+│  │  │ │ generic_edr.contain_host (CONTAIN)               │ │ │ │
 │  │  │ └──────────────────────────────────────────────────┘ │ │ │
 │  │  │ ┌──────────────────────────────────────────────────┐ │ │ │
 │  │  │ │ splunk.search_siema (READ)                       │ │ │ │
@@ -236,8 +236,8 @@ The AI-Native SOAR platform is a secure, local-first security orchestration, aut
 │              EXTERNAL SECURITY SYSTEMS                            │
 │                                                                  │
 │  - SIEM (Splunk, Elastic, etc.)                                   │
-│  - EDR (CrowdStrike, etc.)                                        │
-│  - Threat Intelligence (VirusTotal, etc.)                          │
+│  - EDR (MockEDR, etc.)                                        │
+│  - Threat Intelligence (ThreatIntel, etc.)                          │
 │  - Ticketing (ServiceNow, etc.)                                    │
 │  - Email, Web, File Systems (for evidence processing)              │
 └──────────────────────────────────────────────────────────────────┘
@@ -352,7 +352,7 @@ The AI assistant operates within strict security boundaries:
 
 ```python
 # Tools are registered with metadata
-@tool("virustotal.lookup_ip", risk_level="READ", requires_approval=False)
+@tool("threat_intel.lookup_ip", risk_level="READ", requires_approval=False)
 async def lookup_ip(ip: str) -> Dict:
     """Look up IP address."""
     ...
@@ -482,7 +482,7 @@ A common abstraction is used for all integrations:
 
 ```python
 class Integration(Base):
-    integration_name: str          # e.g., "virustotal"
+    integration_name: str          # e.g., "threat_intel"
     enabled: bool
     configuration: JSON            # API keys, endpoints, etc.
 
@@ -507,7 +507,7 @@ class IntegrationAction(Base):
 ### Integration Execution Flow
 
 ```
-1. Request: /api/v1/integrations/virustotal/lookup_ip
+1. Request: /api/v1/integrations/threat_intel/lookup_ip
 2. Validate input schema
 3. Check authorization
 4. Get integration config
@@ -521,19 +521,19 @@ class IntegrationAction(Base):
 Each action defines its risk level:
 
 ```python
-virustotal.lookup_ip
+threat_intel.lookup_ip
   - Risk: READ
   - Requires Approval: No
 
-crowdstrike.get_host
+generic_edr.get_host
   - Risk: READ
   - Requires Approval: No
 
-crowdstrike.contain_host
+generic_edr.contain_host
   - Risk: CONTAIN
   - Requires Approval: Yes
 
-virustotal.lookup_hash
+threat_intel.lookup_hash
   - Risk: ENRICH
   - Requires Approval: No
 ```
@@ -552,7 +552,7 @@ risk_level: READ
 requires_approval: false
 
 steps:
-  - action: virustotal.lookup_ip
+  - action: threat_intel.lookup_ip
     input:
       ip_address: "{{ incident.observable_ip }}"
   - action: threatcrowd.lookup_ip
@@ -710,7 +710,7 @@ class LLMFinding(Base):
 Tools are registered with metadata:
 
 ```python
-@tool("virustotal.lookup_ip", 
+@tool("threat_intel.lookup_ip", 
      description="Look up IP address reputation",
      risk_level="READ",
      requires_approval=False,

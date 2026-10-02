@@ -50,7 +50,7 @@ class IntegrationService:
         Args:
             incident_id: Optional incident ID for context
             integration_config_id: Integration configuration ID
-            action_name: Action name (e.g., "virustotal.lookup_ip")
+            action_name: Action name (e.g., "threat_intel.lookup_ip")
             inputs: Input parameters for the action
             actor_username: Username of the actor
             
@@ -152,7 +152,7 @@ class IntegrationService:
             IntegrationAction.integration_config_id.in_(
                 self.db.query(IntegrationConfig.id).filter(
                     IntegrationConfig.integration_name == integration_name,
-                ).values flat=True
+                )
             ),
             IntegrationAction.action_name == action_name,
             IntegrationAction.enabled == True,

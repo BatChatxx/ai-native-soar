@@ -64,13 +64,13 @@ def main():
     print("\nCreating default integration configurations...")
     
     with get_db() as db:
-        # VirusTotal integration
+        # ThreatIntel integration
         vt_config = IntegrationConfig(
-            integration_name="virustotal",
-            display_name="VirusTotal",
+            integration_name="threat_intel",
+            display_name="ThreatIntel",
             enabled=True,
             configuration={
-                "api_url": "https://www.virustotal.com/api/v3/",
+                "api_url": "https://www.threat_intel.com/api/v3/",
                 "rate_limit": 400,
             },
         )
@@ -87,7 +87,7 @@ def main():
         )
         db.add(tc_config)
         
-        print("✓ VirusTotal integration configured")
+        print("✓ ThreatIntel integration configured")
         print("✓ ThreatCrowd integration configured")
     
     print("\n" + "=" * 60)

@@ -30,7 +30,7 @@ REPORT = {
         "随后下载 Node.js 运行时并建立持久化。攻击者后续部署 TukTuk 恶意软件"
         "（伪装成 Greenshot 等合法二进制，通过 DLL 侧加载），利用 SaaS 平台"
         "（ClickHouse、Supabase）和区块链（Arweave）作为 C2/死投解析。攻击者使用 "
-        "GoTo Resolve RMM 进行横向移动，通过 Rclone 将数据外泄至 Wasabi 云存储，"
+        "合法外观的远程管理工具（RMM）进行横向移动，通过 Rclone 将数据外泄至云存储服务，"
         "最终通过恶意 GPO 在域内广泛部署 The Gentlemen 勒索软件。"
     ),
     "attack_chain": [
@@ -78,19 +78,19 @@ REPORT = {
         {
             "phase": "lateral_movement",
             "technique": "T1021 Remote Services",
-            "description": "使用 NetExec (nxc) 进行 SMB 横向移动和凭据转储；使用 GoTo Resolve RMM 横向部署。",
+            "description": "使用 NetExec (nxc) 进行 SMB 横向移动和凭据转储；使用合法外观的远程管理工具横向部署。",
         },
         {
             "phase": "exfiltration",
             "technique": "T1567.002 Exfiltration to Cloud Storage",
-            "description": "使用 Rclone 将大量敏感数据外泄至 Wasabi 云存储。",
+            "description": "使用 Rclone 将大量敏感数据外泄至云存储服务。",
         },
         {
             "phase": "impact",
             "technique": "T1486 Data Encrypted for Impact",
             "description": (
                 "通过恶意 GPO 在域内广泛部署 The Gentlemen 勒索软件，"
-                "禁用 Defender、添加 AV 排除、停止虚拟机、删除卷影副本、清除事件日志。"
+                "禁用杀毒软件、添加 AV 排除、停止虚拟机、删除卷影副本、清除事件日志。"
             ),
         },
     ],
@@ -139,7 +139,7 @@ REPORT = {
     "recommended_actions": [
         "隔离受影响主机，尤其是域控制器和关键服务器。",
         "重置被泄露的服务账户和管理员账户密码。",
-        "检查并移除未授权的 RMM 工具（如 GoTo Resolve）。",
+        "检查并移除未授权的 RMM 工具（如 remote management tool）。",
         "审查并阻止与已知 IOC 相关的出站连接。",
         "检查 GPO 是否被篡改，特别是通过 SYSVOL/NETLOGON 执行计划任务的 GPO。",
         "从备份恢复受勒索软件影响的数据，确保备份未被加密。",

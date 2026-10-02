@@ -144,10 +144,10 @@ docker compose exec backend python init_db.py
    - **Change this immediately after first login!**
 
 2. Creates default integration configurations:
-   - VirusTotal
+   - ThreatIntel
    - ThreatCrowd
    - Shodan
-   - CrowdStrike
+   - MockEDR
 
 3. Sets up default roles and permissions
 
@@ -194,10 +194,10 @@ curl http://localhost:8000/health
 ```bash
 docker compose exec -T database psql -U soar_user -d soar <<EOF
 
--- VirusTotal
+-- ThreatIntel
 UPDATE integration_configs 
 SET configuration = '{"api_key": "YOUR_VT_API_KEY"}'
-WHERE integration_name = 'virustotal';
+WHERE integration_name = 'threat_intel';
 
 -- ThreatCrowd
 UPDATE integration_configs 
@@ -209,10 +209,10 @@ UPDATE integration_configs
 SET configuration = '{"api_key": "YOUR_SHODAN_API_KEY"}'
 WHERE integration_name = 'shodan';
 
--- CrowdStrike (requires additional setup)
+-- MockEDR (requires additional setup)
 -- UPDATE integration_configs 
 -- SET configuration = '{"client_id": "...", "client_secret": "..."}'
--- WHERE integration_name = 'crowdstrike';
+-- WHERE integration_name = 'generic_edr';
 EOF
 ```
 
@@ -228,7 +228,7 @@ Use the Swagger UI at `http://localhost:8000/docs`:
 Example API call:
 
 ```bash
-curl -X PATCH http://localhost:8000/api/v1/integrations/virustotal \
+curl -X PATCH http://localhost:8000/api/v1/integrations/threat_intel \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -d '{
@@ -278,8 +278,8 @@ curl -X POST http://localhost:8000/api/v1/incidents/ \
 #### 3. Test Integration
 
 ```bash
-# Test VirusTotal lookup
-curl -X POST http://localhost:8000/api/v1/integrations/virustotal \
+# Test ThreatIntel lookup
+curl -X POST http://localhost:8000/api/v1/integrations/threat_intel \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
@@ -405,7 +405,7 @@ uvicorn main:app --reload --port 8000
 python -m pytest tests/ -v
 
 # Run specific test
-python -m pytest tests/integrations/test_virustotal.py -v
+python -m pytest tests/integrations/test_threat_intel.py -v
 
 # Run with coverage
 python -m pytest tests/ --cov=src --cov-report=html

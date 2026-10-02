@@ -109,7 +109,7 @@ Common integration abstraction with:
 The `/phishing` page ingests `.eml` files and runs an automated phishing playbook:
 1. **Parse** message headers, routing table (Received chain), and SPF/DKIM/DMARC auth results
 2. **Extract** indicators of compromise (domains, URLs, IPs)
-3. **DNS / WhoIs** lookups (nslookup-equivalent) + local threat-intel scoring (optional VirusTotal)
+3. **DNS / WhoIs** lookups (nslookup-equivalent) + local threat-intel scoring (optional external threat-intel API)
 4. **AI analysis** for a verdict, red flags, attack purpose, and recommendations
 5. **One-click** conversion into a full incident with IOCs as observables
 

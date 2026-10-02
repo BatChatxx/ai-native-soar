@@ -1,5 +1,5 @@
 # IP Reputation Check Playbook
-# Checks IP reputation using VirusTotal and other sources
+# Checks IP reputation using ThreatIntel and other sources
 # Risk: READ (can be executed automatically)
 
 version: "1.0"
@@ -12,9 +12,9 @@ requires_approval: false
 
 steps:
   - id: vt_lookup
-    name: "VirusTotal IP Lookup"
+    name: "ThreatIntel IP Lookup"
     type: "integration"
-    integration: "virustotal"
+    integration: "threat_intel"
     action: "lookup_ip"
     input:
       - parameter: "ip_address"

@@ -729,7 +729,7 @@ hotfix/*       # Production hotfixes
 ### Commit Messages
 
 ```
-feat: Add VirusTotal integration
+feat: Add ThreatIntel integration
 fix: Resolve incident timeline pagination
 docs: Update API documentation
 test: Add tests for evidence service

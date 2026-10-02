@@ -56,7 +56,7 @@ class ApprovalRequest(Base):
     incident_id = Column(Integer, ForeignKey("incidents.id", ondelete="SET NULL"), nullable=True)
     
     # Action details
-    action_type = Column(String(200), nullable=True)  # e.g., "crowdstrike.contain_host"
+    action_type = Column(String(200), nullable=True)  # e.g., "generic_edr.contain_host"
     action_target = Column(String(500), nullable=True)  # e.g., "host:WS123"
     action_metadata = Column(Text, nullable=True)
     

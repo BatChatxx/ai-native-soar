@@ -3,12 +3,12 @@
 
 incident:
   id: INC-2026-000184
-  title: "Malware Detection - CrowdStrike Falcon"
-  description: "CrowdStrike Falcon detected suspicious PowerShell activity on endpoint WS123"
+  title: "Malware Detection - MockEDR (Generic EDR)"
+  description: "MockEDR (Generic EDR) detected suspicious PowerShell activity on endpoint WS123"
   severity: high
   status: triage
   source_type: edr
-  source_integration: crowdstrike
+  source_integration: generic_edr
   detection_id: 8293847592847592847592847592
   detection_timestamp: "2026-01-15T10:21:00Z"
   owner: analyst1
@@ -127,7 +127,7 @@ incident:
   timeline:
     - timestamp: "10:21:00"
       event_type: incident_created
-      description: "Incident created from CrowdStrike detection"
+      description: "Incident created from MockEDR detection"
     - timestamp: "10:21:30"
       event_type: observable_extracted
       description: "File observable extracted from detection"

@@ -220,7 +220,7 @@ SOAR_ADMIN_PASSWORD=admin
 
 - Legacy placeholder routers (`incidents_router.py`, `evidence_router.py`, etc.) remain in `backend/routers/` but are **not mounted** (the clean `*_clean.py` routers are used instead)
 - `init_db.py` references stale modules and needs updating
-- The threat intel feed is a static demo JSON (`data/threat_intel.json`); production should use VirusTotal / AbuseIPDB / MISP
+- The threat intel feed is a static demo JSON (`data/threat_intel.json`); production should use ThreatIntel / AbuseIPDB / MISP
 - Authentication is single-account (one admin); no multi-user RBAC yet
 - Airflow and bundled `llm-server` are optional profiles (external LM Studio is used)
 

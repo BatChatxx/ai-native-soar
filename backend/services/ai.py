@@ -164,7 +164,7 @@ class LLMService:
         
         For example:
         AI requests:
-        crowdstrike.contain_host(host="WS123")
+        generic_edr.contain_host(host="WS123")
         
         Backend responds:
         ACTION_REQUIRES_APPROVAL

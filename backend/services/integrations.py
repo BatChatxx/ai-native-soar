@@ -90,7 +90,7 @@ class IntegrationService:
         - risk classification
         
         Example:
-        CrowdStrike
+        MockEDR
         get_host
         Risk: READ
         

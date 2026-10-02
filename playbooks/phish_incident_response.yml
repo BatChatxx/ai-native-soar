@@ -80,25 +80,25 @@ steps:
 
   # Step 4: Lookup sender reputation
   - name: Lookup sender
-    action: virustotal.lookup_email
+    action: threat_intel.lookup_email
     inputs:
       email: "{{ sender_email }}"
     on_success:
       - set_variable: sender_reputation
-        value: "{{ virustotal_response }}"
+        value: "{{ threat_intel_response }}"
       - next_step: evaluate_risk
     on_failure:
       - continue: true
-      - log_warning: "VirusTotal lookup failed, proceeding without reputation data"
+      - log_warning: "ThreatIntel lookup failed, proceeding without reputation data"
 
   # Step 5: Lookup attachment hashes
   - name: Lookup attachments
-    action: virustotal.lookup_file
+    action: threat_intel.lookup_file
     inputs:
       filenames: "{{ attachments }}"
     on_success:
       - set_variable: attachment_reputation
-        value: "{{ virustotal_response }}"
+        value: "{{ threat_intel_response }}"
       - next_step: evaluate_risk
     on_failure:
       - continue: true

@@ -136,7 +136,7 @@ LLM Request
 ```python
 # Integration Action Examples
 
-crowdstrike:
+generic_edr:
   get_host:
     risk: READ
     requires_approval: false
@@ -157,7 +157,7 @@ crowdstrike:
     requires_approval: true
     description: "Run RTR remote command"
 
-virustotal:
+threat_intel:
   lookup_ip:
     risk: READ
     requires_approval: false
@@ -205,7 +205,7 @@ splunk:
 - ✅ Docker secrets
 - ✅ HashiCorp Vault
 - ✅ AWS Secrets Manager
-- ✅ Azure Key Vault
+- ✅ a cloud secrets manager (e.g. cloud KMS/vault)
 - ❌ Never in database records
 
 ### Environment Variables
@@ -364,7 +364,7 @@ async def execute_action(action_name: str, incident_id: int, result: Any):
   "id": 1234,
   "incident_id": 42,
   "actor_username": "analyst_john",
-  "action": "virustotal.lookup_ip",
+  "action": "threat_intel.lookup_ip",
   "resource_type": "integration_execution",
   "risk_level": "read",
   "response": "success",
@@ -428,17 +428,17 @@ async def execute_action(action_name: str, actor: User, incident: Incident) -> b
 ```python
 # ❌ BAD - Store plaintext credentials
 integration_configs:
-  - integration_name: virustotal
+  - integration_name: threat_intel
     configuration:
       api_key: "vt_api_key_here"  # NEVER!
       enabled: true
 
 # ✅ GOOD - Use encrypted storage or external secrets
 integration_configs:
-  - integration_name: virustotal
+  - integration_name: threat_intel
     configuration:
       api_key_encrypted: "encrypted_api_key"
-      vault_path: "secret/data/virustotal"
+      vault_path: "secret/data/threat_intel"
       enabled: true
 ```
 
@@ -563,7 +563,7 @@ async def ai_request_containment(host_id: int) -> Dict:
     approval_request = await create_approval_request(
         incident_id=incident_id,
         actor_username="ai_assistant",
-        action="crowdstrike.contain_host",
+        action="generic_edr.contain_host",
         resource_type="host",
         risk_level="CONTAIN",
         event_data={

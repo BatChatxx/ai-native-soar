@@ -88,7 +88,7 @@ class Evidence(Base):
     ai_findings = Column(Text, nullable=True)
     
     # Metadata JSON
-        meta = Column(Text, nullable=True)
+    meta = Column(Text, nullable=True)
     
     # Relationships
     incident_evidence = relationship("IncidentEvidence", back_populates="evidence")
@@ -149,7 +149,7 @@ class EvidenceLink(Base):
     confidence = Column(Integer, default=100)
     
     # Metadata
-        meta = Column(Text, nullable=True)
+    meta = Column(Text, nullable=True)
     
     # Relationships
     source_evidence = relationship("Evidence", foreign_keys=[source_evidence_id], back_populates="evidence_links")

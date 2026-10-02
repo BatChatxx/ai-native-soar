@@ -21,7 +21,7 @@ definition:
       type: "integration_action"
       args:
         ip: "{{ incident.ip_addresses[0] }}"
-      integration: "virustotal"
+      integration: "threat_intel"
       action: "lookup_ip"
       timeout: 30
       risk_level: "ENRICH"
@@ -30,7 +30,7 @@ definition:
       type: "integration_action"
       args:
         domain: "{{ incident.domains[0] }}"
-      integration: "virustotal"
+      integration: "threat_intel"
       action: "lookup_domain"
       timeout: 30
       risk_level: "ENRICH"
@@ -39,7 +39,7 @@ definition:
       type: "integration_action"
       args:
         hash: "{{ incident.hashes[0] }}"
-      integration: "virustotal"
+      integration: "threat_intel"
       action: "lookup_hash"
       timeout: 30
       risk_level: "ENRICH"
@@ -58,7 +58,7 @@ definition:
       type: "integration_action"
       args:
         host_id: "{{ incident.hosts[0].id }}"
-      integration: "crowdstrike"
+      integration: "generic_edr"
       action: "get_host"
       timeout: 30
       risk_level: "READ"
@@ -67,7 +67,7 @@ definition:
       type: "integration_action"
       args:
         host_id: "{{ incident.hosts[0].id }}"
-      integration: "crowdstrike"
+      integration: "generic_edr"
       action: "get_process_tree"
       timeout: 30
       risk_level: "READ"
@@ -76,7 +76,7 @@ definition:
       type: "integration_action"
       args:
         user: "{{ incident.users[0].name }}"
-      integration: "crowdstrike"
+      integration: "generic_edr"
       action: "get_user"
       timeout: 30
       risk_level: "READ"

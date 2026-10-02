@@ -237,25 +237,25 @@ async def _execute_tool_impl(
     
     # Placeholder implementations
     
-    if tool_name == "crowdstrike.get_host":
+    if tool_name == "generic_edr.get_host":
         return {"host_id": arguments.get("host_id"), "status": "success"}
     
-    elif tool_name == "crowdstrike.get_process_tree":
+    elif tool_name == "generic_edr.get_process_tree":
         return {"host_id": arguments.get("host_id"), "status": "success"}
     
-    elif tool_name == "crowdstrike.contain_host":
+    elif tool_name == "generic_edr.contain_host":
         return {"host_id": arguments.get("host_id"), "status": "pending_approval"}
     
-    elif tool_name == "crowdstrike.run_rtr_command":
+    elif tool_name == "generic_edr.run_rtr_command":
         return {"status": "pending_approval", "command": arguments.get("command")}
     
-    elif tool_name == "virustotal.lookup_hash":
+    elif tool_name == "threat_intel.lookup_hash":
         return {"hash": arguments.get("hash"), "detection_count": 0}
     
-    elif tool_name == "virustotal.lookup_domain":
+    elif tool_name == "threat_intel.lookup_domain":
         return {"domain": arguments.get("domain"), "categories": []}
     
-    elif tool_name == "virustotal.lookup_ip":
+    elif tool_name == "threat_intel.lookup_ip":
         return {"ip": arguments.get("ip"), "categories": []}
     
     elif tool_name == "threatfox.search_siem":

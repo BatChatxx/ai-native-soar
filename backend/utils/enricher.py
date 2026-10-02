@@ -3,7 +3,7 @@ Observable enrichment.
 
 Looks up observables against a local threat-intel feed to assign a
 malicious score and reputation. In production this would call external
-APIs (VirusTotal, AbuseIPDB, etc.).
+APIs (ThreatIntel, AbuseIPDB, etc.).
 """
 import json
 import os

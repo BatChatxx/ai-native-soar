@@ -5,7 +5,7 @@ Parses .eml files, extracts headers / routing / auth results / IOCs,
 does DNS lookups (nslookup-equivalent via stdlib socket), whois (best-effort),
 and scores indicators against the local threat intel feed.
 
-VirusTotal integration is optional: if VIRUSTOTAL_API_KEY is set, real
+External threat-intel integration is optional: if THREAT_INTEL_API_KEY is set, real
 lookups are used; otherwise the local feed provides scores.
 """
 import email
