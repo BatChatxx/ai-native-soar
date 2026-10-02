@@ -1,0 +1,204 @@
+# CrowdStrike Integration Configuration
+# Version: 1.0.0
+# Description: CrowdStrike Falcon integration for endpoint security
+
+---
+integration:
+  name: crowdstrike
+  display_name: CrowdStrike Falcon
+  type: endpoint_security
+  category: edr
+
+# API Configuration
+api:
+  base_url: "https://falcon.crowdstrike.com"
+  api_version: "/api/v1"
+  authentication:
+    type: "oauth2"
+    fields:
+      - client_id
+      - client_secret
+  scopes:
+    - "FalconPlatformData.Read"
+    - "FalconPlatformData.Write"
+    - "FalconEndpoint.Read"
+    - "FalconEndpoint.Write"
+    - "FalconIncident.Read"
+    - "FalconIncident.Write"
+
+# Risk Classification for Actions
+risk_classifications:
+  get_host: "READ"
+  get_process_tree: "READ"
+  get_network_connections: "READ"
+  get_file_hash: "READ"
+  get_user: "READ"
+  get_detection: "READ"
+  get_alerts: "READ"
+  get_incidents: "READ"
+  
+  update_host_tags: "MODIFY_LOW"
+  update_host_metadata: "MODIFY_LOW"
+  create_incident: "MODIFY"
+  update_incident: "MODIFY"
+  
+  isolate_host: "CONTAIN"
+  quarantine_endpoint: "CONTAIN"
+  disable_account: "CONTAIN"
+  
+  run_rtr_command: "EXECUTE"
+  run_powershell: "EXECUTE"
+  run_bash: "EXECUTE"
+  
+  delete_host: "DESTRUCTIVE"
+  delete_incident: "DESTRUCTIVE"
+
+# Available Actions
+actions:
+  - name: get_host
+    description: Get host information from CrowdStrike
+    risk: "READ"
+    input_schema:
+      type: object
+      required: [host_id, host_name, or_ip_address]
+      properties:
+        host_id:
+          type: string
+          description: "CrowdStrike host ID"
+        host_name:
+          type: string
+          description: "Host computer name"
+        ip_address:
+          type: string
+          description: "Host IP address"
+    output_schema:
+      type: object
+      properties:
+        host_id:
+          type: string
+        host_name:
+          type: string
+        ip_addresses:
+          type: array
+        os_version:
+          type: string
+        last_seen:
+          type: string
+        status:
+          type: string
+  
+  - name: get_process_tree
+    description: Get process tree for a host
+    risk: "READ"
+    input_schema:
+      type: object
+      required: [host_id, process_id]
+      properties:
+        host_id:
+          type: string
+        process_id:
+          type: string
+          description: "Process ID or PID"
+    output_schema:
+      type: object
+      properties:
+        process_id:
+          type: string
+        process_name:
+          type: string
+        command_line:
+          type: string
+        parent_process:
+          type: string
+        child_processes:
+          type: array
+  
+  - name: contain_host
+    description: Isolate/host containment action
+    risk: "CONTAIN"
+    requires_approval: true
+    input_schema:
+      type: object
+      required: [host_id, action_type]
+      properties:
+        host_id:
+          type: string
+        action_type:
+          type: string
+          enum: [isolate, quarantine, disable_network]
+    output_schema:
+      type: object
+      properties:
+        status:
+          type: string
+        host_id:
+          type: string
+        action_type:
+          type: string
+  
+  - name: run_rtr_command
+    description: Execute RTR (Remote Terminal) command
+    risk: "EXECUTE"
+    requires_approval: true
+    input_schema:
+      type: object
+      required: [host_id, command]
+      properties:
+        host_id:
+          type: string
+        command:
+          type: string
+          description: "Command to execute via RTR"
+    output_schema:
+      type: string
+      description: "Command output"
+  
+  - name: get_network_connections
+    description: Get active network connections
+    risk: "READ"
+    input_schema:
+      type: object
+      required: [host_id]
+      properties:
+        host_id:
+          type: string
+        filter:
+          type: string
+          description: "Optional filter (e.g., 'protocol:TCP')"
+    output_schema:
+      type: array
+      items:
+        type: object
+        properties:
+          local_address:
+            type: string
+          remote_address:
+            type: string
+          protocol:
+            type: string
+          state:
+            type: string
+
+# Default Configuration
+defaults:
+  enabled: true
+  auto_detect: true
+  query_time_window: "24h"
+
+# Rate Limiting
+rate_limits:
+  requests_per_minute: 60
+  requests_per_hour: 1000
+
+# Error Handling
+error_handling:
+  retry_attempts: 3
+  retry_delay_seconds: 2
+  max_retry_delay_seconds: 30
+
+# Monitoring
+monitoring:
+  health_check_endpoint: "/api/v1/integrations/crowdstrike/health"
+  last_sync: null
+  last_sync_error: null
+

@@ -1,0 +1,35 @@
+# FastAPI Framework
+fastapi==0.115.0
+uvicorn[standard]==0.34.0
+python-multipart==0.0.15
+
+# Database
+sqlalchemy==2.0.37
+psycopg2-binary==2.9.10
+
+# Redis
+redis==5.2.1
+hiredis==2.4.0
+
+# HTTP Client
+httpx==0.28.1
+
+# Security
+python-jose[cryptography]==3.4.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.1
+
+# Pydantic
+pydantic==2.10.6
+
+# Authlib for OAuth
+authlib==1.4.1
+
+# Logging
+structlog==25.1.0
+
+# Alembic for migrations
+alembic==1.14.0
+
+# Pydantic-settings (for env loading)
+pydantic-settings==2.8.1

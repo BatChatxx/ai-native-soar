@@ -1,0 +1,242 @@
+# Initial Incident Response Workflow
+# Orchestrates detection, enrichment, analysis, and response
+# Risk: MIXED (depends on individual steps)
+
+version: "1.0"
+
+name: Initial Incident Response
+description: "Complete incident response workflow from detection to containment"
+category: "incident_response"
+risk_level: "MIXED"
+requires_approval: true
+
+trigger:
+  type: "event"
+  event_type: "alert"
+  sources: ["siem", "edr", "ticket", "email"]
+
+steps:
+  # Step 1: Create incident
+  - id: create_incident
+    name: "Create Incident"
+    type: "action"
+    depends_on: []
+    parallel: false
+    timeout_minutes: 1
+    input:
+      - parameter: "alert_data"
+        type: "object"
+        source: "event"
+        required: true
+    output:
+      - parameter: "incident_id"
+        type: "string"
+        description: "Created incident ID"
+
+  # Step 2: Extract observables
+  - id: extract_observables
+    name: "Extract Observables"
+    type: "action"
+    depends_on: ["create_incident"]
+    parallel: true
+    timeout_minutes: 2
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "previous:create_incident"
+        required: true
+      - parameter: "alert_data"
+        type: "object"
+        source: "event"
+        required: false
+    output:
+      - parameter: "observables"
+        type: "array"
+        description: "List of extracted observables"
+
+  # Step 3: Enrichment phase
+  - id: enrich_observables
+    name: "Enrich Observables"
+    type: "playbook"
+    depends_on: ["extract_observables"]
+    parallel: true
+    playbook_id: "ip_reputation_check.yml"
+    timeout_minutes: 5
+    input:
+      - parameter: "observables"
+        type: "array"
+        source: "previous:extract_observables"
+        required: true
+    output:
+      - parameter: "enrichment_results"
+        type: "array"
+        description: "Enrichment results"
+
+  # Step 4: AI analysis
+  - id: ai_analysis
+    name: "AI Threat Analysis"
+    type: "ai"
+    depends_on: ["enrich_observables"]
+    parallel: false
+    timeout_minutes: 3
+    model: "qwen3.5:9b"
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "previous:create_incident"
+        required: true
+      - parameter: "enrichment_results"
+        type: "array"
+        source: "previous:enrich_observables"
+        required: false
+    output:
+      - parameter: "analysis"
+        type: "object"
+        description: "AI analysis findings"
+
+  # Step 5: Create findings
+  - id: create_findings
+    name: "Create Findings"
+    type: "action"
+    depends_on: ["ai_analysis"]
+    parallel: false
+    timeout_minutes: 1
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "previous:create_incident"
+        required: true
+      - parameter: "analysis"
+        type: "object"
+        source: "previous:ai_analysis"
+        required: true
+      - parameter: "enrichment_results"
+        type: "array"
+        source: "previous:enrich_observables"
+        required: false
+    output:
+      - parameter: "findings"
+        type: "array"
+        description: "List of findings"
+
+  # Step 6: Determine containment
+  - id: determine_containment
+    name: "Determine Containment Needs"
+    type: "ai"
+    depends_on: ["create_findings"]
+    parallel: false
+    timeout_minutes: 2
+    model: "qwen3.5:9b"
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "previous:create_incident"
+        required: true
+      - parameter: "findings"
+        type: "array"
+        source: "previous:create_findings"
+        required: true
+      - parameter: "enrichment_results"
+        type: "array"
+        source: "previous:enrich_observables"
+        required: false
+    output:
+      - parameter: "containment_plan"
+        type: "object"
+        description: "Recommended containment actions"
+
+  # Step 7: Request approval for high-risk actions
+  - id: request_approval
+    name: "Request Approval (if needed)"
+    type: "action"
+    depends_on: ["determine_containment"]
+    parallel: false
+    timeout_minutes: 30
+    conditional:
+      condition: "contains(determine_containment.containment_plan, 'high_risk_action')"
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "previous:create_incident"
+        required: true
+      - parameter: "containment_plan"
+        type: "object"
+        source: "previous:determine_containment"
+        required: true
+    output:
+      - parameter: "approval_request_id"
+        type: "string"
+        description: "Approval request ID"
+      - parameter: "requires_approval"
+        type: "boolean"
+        description: "Whether approval is required"
+
+  # Step 8: Execute containment (if approved)
+  - id: execute_containment
+    name: "Execute Containment"
+    type: "script"
+    depends_on: ["request_approval"]
+    parallel: false
+    timeout_minutes: 10
+    conditional:
+      condition: "and(request_approval.requires_approval, approval_request_id.approved)"
+    script_path: "contain_host.ps1"
+    input:
+      - parameter: "approval_request_id"
+        type: "string"
+        source: "previous:request_approval"
+        required: true
+      - parameter: "containment_plan"
+        type: "object"
+        source: "previous:determine_containment"
+        required: true
+    output:
+      - parameter: "execution_result"
+        type: "object"
+        description: "Execution result"
+
+  # Step 9: Update incident
+  - id: update_incident
+    name: "Update Incident"
+    type: "action"
+    depends_on: ["execute_containment"]
+    parallel: false
+    timeout_minutes: 1
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "previous:create_incident"
+        required: true
+      - parameter: "findings"
+        type: "array"
+        source: "previous:create_findings"
+        required: true
+      - parameter: "containment_result"
+        type: "object"
+        source: "previous:execute_containment"
+        required: false
+    output:
+      - parameter: "incident"
+        type: "object"
+        description: "Updated incident"
+
+  # Step 10: Notify stakeholders
+  - id: notify_stakeholders
+    name: "Notify Stakeholders"
+    type: "action"
+    depends_on: ["update_incident"]
+    parallel: true
+    timeout_minutes: 2
+    input:
+      - parameter: "incident"
+        type: "object"
+        source: "previous:update_incident"
+        required: true
+      - parameter: "findings"
+        type: "array"
+        source: "previous:create_findings"
+        required: true
+    output:
+      - parameter: "notifications"
+        type: "array"
+        description: "Sent notifications"

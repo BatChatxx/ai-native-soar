@@ -1,0 +1,140 @@
+# Hash Lookup Automation Script
+# Performs hash lookup against multiple sources
+
+name: "Lookup Hash Reputation"
+version: "1.0"
+status: "active"
+risk_level: "READ"
+requires_approval: false
+author: "security-team"
+created: "2026-01-15T10:00:00Z"
+last_updated: "2026-01-15T10:00:00Z"
+tags:
+  - reputation
+  - hash
+  - enrichment
+  - vt
+  - malicious
+
+# Definition
+definition:
+  actions:
+    - name: "Check VirusTotal"
+      type: "integration_action"
+      args:
+        hash: "{{ input.sha256 }}"
+      integration: "virustotal"
+      action: "lookup_hash"
+      timeout: 30
+      risk_level: "READ"
+    
+    - name: "Check Microsoft Defender"
+      type: "integration_action"
+      args:
+        hash: "{{ input.sha256 }}"
+      integration: "mde"
+      action: "analyze_hash"
+      timeout: 60
+      risk_level: "READ"
+    
+    - name: "Check Talos Intelligence"
+      type: "integration_action"
+      args:
+        hash: "{{ input.sha256 }}"
+      integration: "talos"
+      action: "lookup_hash"
+      timeout: 30
+      risk_level: "READ"
+    
+    - name: "Check Hybrid-Analysis"
+      type: "integration_action"
+      args:
+        hash: "{{ input.sha256 }}"
+      integration: "hybrid-analysis"
+      action: "lookup_hash"
+      timeout: 60
+      risk_level: "READ"
+    
+    - name: "Check MalwareBazaar"
+      type: "integration_action"
+      args:
+        hash: "{{ input.sha256 }}"
+      integration: "malwarebazaar"
+      action: "lookup_hash"
+      timeout: 30
+      risk_level: "READ"
+
+  input_schema:
+    type: "object"
+    required:
+      - sha256
+    properties:
+      sha256:
+        type: "string"
+        minLength: 64
+        maxLength: 64
+        pattern: "^[a-f0-9]{64}$"
+      md5:
+        type: "string"
+        minLength: 32
+        maxLength: 32
+        pattern: "^[a-f0-9]{32}$"
+        description: "Optional MD5 hash"
+      file_path:
+        type: "string"
+        description: "Optional file path"
+      incident_id:
+        type: "integer"
+        description: "Associated incident ID"
+
+  output_schema:
+    type: "object"
+    properties:
+      hash:
+        type: "string"
+      file_name:
+        type: "string"
+      file_type:
+        type: "string"
+      file_size:
+        type: "integer"
+      md5:
+        type: "string"
+      sha256:
+        type: "string"
+      source_type:
+        type: "string"
+      last_analysis_result:
+        type: "string"
+      last_analysis_stats:
+        type: "object"
+        properties:
+          malicious:
+            type: "integer"
+          suspicious:
+            type: "integer"
+          harmless:
+            type: "integer"
+          undetected:
+            type: "integer"
+      tags:
+        type: "array"
+        items:
+          type: "string"
+      attribution:
+        type: "object"
+        properties:
+          group:
+            type: "string"
+          malware_family:
+            type: "string"
+          malware_name:
+            type: "string"
+
+# Trigger configuration (optional)
+trigger_config:
+  source: "observable"
+  event_type: "hash_created"
+  event_fields:
+    - hash
+    - observable_type

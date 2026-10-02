@@ -1,0 +1,112 @@
+# Incident Created Playbook
+# This playbook runs when a new incident is created
+
+name: Incident Created
+description: "Initial response actions for newly created incidents"
+version: "1.0.0"
+
+# Define playbook actions
+actions:
+  - name: "Enrich incident with observable data"
+    description: "Add observable data to incident"
+    type: "read"
+    risk_level: "READ"
+    requires_approval: false
+    
+    # Condition to run this action
+    condition: "always"
+    
+    # Steps for this action
+    steps:
+      - action: "add_observable"
+        parameters:
+          observable_type: "ip"
+          observable_value: "{{incident.observables.ip.value}}"
+    
+      - action: "search_threat_intel"
+        parameters:
+          query: "{{incident.title}}"
+          scope: ["ip", "domain", "hash"]
+    
+      - action: "create_timeline_event"
+        parameters:
+          title: "Threat intel search completed"
+          description: "External threat intel lookup performed"
+
+  - name: "Identify related incidents"
+    description: "Search for related incidents"
+    type: "read"
+    risk_level: "READ"
+    requires_approval: false
+    
+    condition: "always"
+    
+    steps:
+      - action: "search_related_incidents"
+        parameters:
+          observable_ids: "{{incident.observables}}"
+          severity_filter: "{{incident.severity}}"
+          time_window: 7
+    
+      - action: "update_incident"
+        parameters:
+          add_tags: ["related-incidents-found"]
+          description: "{{related_incidents_found}}"
+
+  - name: "Generate initial AI analysis"
+    description: "Use AI to analyze the incident"
+    type: "ai"
+    risk_level: "READ"
+    requires_approval: false
+    
+    condition: "always"
+    
+    steps:
+      - action: "call_ai_analyze"
+        parameters:
+          incident_id: "{{incident.id}}"
+          prompt: "Analyze this incident and provide initial findings and recommendations."
+
+  - name: "Notify stakeholders"
+    description: "Notify relevant stakeholders"
+    type: "notification"
+    risk_level: "MODIFY"
+    requires_approval: false
+    
+    condition: "incident_severity == 'critical' or incident_severity == 'high'"
+    
+    steps:
+      - action: "send_notification"
+        parameters:
+          channel: "slack"
+          message: "High priority incident {{incident.number}} created. Please review."
+
+  - name: "Create containment approval"
+    description: "Request approval for containment actions"
+    type: "approval"
+    risk_level: "CONTAIN"
+    requires_approval: true
+    
+    condition: "incident_severity == 'critical'"
+    
+    steps:
+      - action: "request_approval"
+        parameters:
+          risk_level: "CONTAIN"
+          action: "isolate_endpoint"
+          description: "AI recommends isolating affected endpoint"
+
+# Dependencies between actions
+dependencies:
+  - after: "add_observable"
+    before: "search_threat_intel"
+    
+  - after: "search_threat_intel"
+    before: "create_timeline_event"
+
+# Parallel actions
+parallel:
+  - actions:
+      - "identify_related_incidents"
+      - "generate_initial_ai_analysis"
+    condition: "always"

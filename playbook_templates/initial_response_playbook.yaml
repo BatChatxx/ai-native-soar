@@ -1,0 +1,149 @@
+# Initial Response Playbook
+# Executes automatically when high/critical severity incidents are created
+
+name: "Initial Response"
+version: "1.0"
+status: "active"
+description: "Perform initial incident response actions"
+
+# Playbook definition
+definition:
+  actions:
+    - name: "Extract Observables"
+      type: "extract_observables"
+      args:
+        source: "incident_detection"
+      timeout: 30
+      retries: 3
+      retry_delay: 10
+
+    - name: "Look Up IP Address"
+      type: "integration_action"
+      args:
+        ip: "{{ incident.ip_addresses[0] }}"
+      integration: "virustotal"
+      action: "lookup_ip"
+      timeout: 30
+      risk_level: "ENRICH"
+
+    - name: "Look Up Domain"
+      type: "integration_action"
+      args:
+        domain: "{{ incident.domains[0] }}"
+      integration: "virustotal"
+      action: "lookup_domain"
+      timeout: 30
+      risk_level: "ENRICH"
+
+    - name: "Look Up Hash"
+      type: "integration_action"
+      args:
+        hash: "{{ incident.hashes[0] }}"
+      integration: "virustotal"
+      action: "lookup_hash"
+      timeout: 30
+      risk_level: "ENRICH"
+
+    - name: "Search SIEM for Related Events"
+      type: "integration_action"
+      args:
+        query: "severity:high OR severity:critical"
+        fields: "user,host,process,command_line"
+      integration: "siem"
+      action: "search"
+      timeout: 60
+      risk_level: "READ"
+
+    - name: "Get Host from EDR"
+      type: "integration_action"
+      args:
+        host_id: "{{ incident.hosts[0].id }}"
+      integration: "crowdstrike"
+      action: "get_host"
+      timeout: 30
+      risk_level: "READ"
+
+    - name: "Get Process Tree from EDR"
+      type: "integration_action"
+      args:
+        host_id: "{{ incident.hosts[0].id }}"
+      integration: "crowdstrike"
+      action: "get_process_tree"
+      timeout: 30
+      risk_level: "READ"
+
+    - name: "Look Up User"
+      type: "integration_action"
+      args:
+        user: "{{ incident.users[0].name }}"
+      integration: "crowdstrike"
+      action: "get_user"
+      timeout: 30
+      risk_level: "READ"
+
+    - name: "Search Related Incidents"
+      type: "query_database"
+      args:
+        query: "SELECT incident_id FROM observable_to_incident WHERE observable IN ({% for obs in incident.observables %}{{ obs.id }}{% endfor %})"
+      timeout: 30
+      risk_level: "READ"
+
+    - name: "Create AI Investigation Session"
+      type: "ai_investigation"
+      args:
+        incident_id: "{{ incident.id }}"
+        prompt: "Analyze this incident and provide findings, recommendations, and containment options."
+      timeout: 120
+      risk_level: "READ"
+
+  conditions:
+    - name: "Check Severity"
+      type: "condition"
+      args:
+        field: "incident.severity"
+        operator: "in"
+        value: ["high", "critical"]
+      on_failure:
+        action: "skip_remaining_steps"
+
+  dependencies:
+    - name: "Wait for Evidence"
+      type: "wait"
+      args:
+        timeout: 60
+        on_timeout: "continue"
+
+  parallel_tasks:
+    - group: "enrichment"
+      tasks:
+        - action_index: 1  # Look Up IP
+        - action_index: 2  # Look Up Domain
+        - action_index: 3  # Look Up Hash
+    - group: "edr_data"
+      tasks:
+        - action_index: 4  # Get Host from EDR
+        - action_index: 5  # Get Process Tree from EDR
+
+  approvals:
+    - name: "Request Containment"
+      type: "approval_request"
+      args:
+        action: "contain_host"
+        description: "AI recommends isolating endpoint HOST-00123"
+        required_for_risk_levels: ["CONTAIN", "EXECUTE", "DESTRUCTIVE"]
+
+  failure_handling:
+    - name: "Log Failure"
+      type: "log"
+      args:
+        level: "error"
+        message: "Playbook execution failed: {{ failure_message }}"
+
+  timeouts:
+    total: 300
+    per_action: 120
+
+  metadata:
+    author: "security-team"
+    created: "2026-01-15T10:00:00Z"
+    last_updated: "2026-01-15T10:00:00Z"

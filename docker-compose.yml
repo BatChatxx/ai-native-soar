@@ -1,0 +1,166 @@
+services:
+  # PostgreSQL - Primary Database
+  db:
+    image: postgres:16-alpine
+    container_name: soar_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: soar
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-soar_password}
+      POSTGRES_DB: soar
+    volumes:
+      - soar_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soar -d soar"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - soar_network
+
+  # Redis - Cache and Event Messaging
+  redis:
+    image: redis:7-alpine
+    container_name: soar_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - soar_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - soar_network
+
+  # Airflow - Internal Orchestration (Optional)
+  airflow-webserver:
+    image: apache/airflow:2.8.0
+    container_name: soar_airflow_web
+    restart: unless-stopped
+    environment:
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@db:5432/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__WEB_SERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY:-(secret-key-here)}
+    volumes:
+      - ./playbooks:/opt/airflow/dags/playbooks
+      - ./automation_templates:/opt/airflow/dags/automation_templates
+      - ./incident_templates:/opt/airflow/dags/incident_templates
+      - soar_airflow_data:/opt/airflow/airflow_home
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - soar_network
+    profiles:
+      - airflow
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.0
+    container_name: soar_airflow_scheduler
+    restart: unless-stopped
+    command: airflow scheduler
+    environment:
+      - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql://${AIRFLOW_DB_USER:-airflow}:${AIRFLOW_DB_PASSWORD:-airflow}@db:5432/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    volumes:
+      - ./playbooks:/opt/airflow/dags/playbooks
+      - ./automation_templates:/opt/airflow/dags/automation_templates
+      - ./incident_templates:/opt/airflow/dags/incident_templates
+      - soar_airflow_data:/opt/airflow/airflow_home
+    depends_on:
+      - db
+    networks:
+      - soar_network
+    profiles:
+      - airflow
+
+  # LLM Server - Local Qwen 3.5 9B (Optional)
+  llm-server:
+    image: ghcr.io/lmstudio-community/lmstudio-server
+    container_name: soar_llm
+    restart: unless-stopped
+    ports:
+      - "1234:1234"
+    volumes:
+      - ./llm_models:/data/models
+    environment:
+      LMSTUDIO_ACCEPT_EULA: "true"
+      LMSTUDIO_DEFAULT_MODEL: "Qwen3.5-9B"
+      LMSTUDIO_API_KEY: ${LLM_API_KEY}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1234/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - soar_network
+    profiles:
+      - llm
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: soar_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://soar:${DB_PASSWORD:-soar_password}@db:5432/soar
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: http://localhost:3000
+      DEBUG: "true"
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_BASE_URL: http://host.docker.internal:56987
+      LLM_MODEL: ${LLM_MODEL:-qwen/qwen3.5-9b}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - soar_network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: soar_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/app
+    networks:
+      - soar_network
+
+# Networks
+networks:
+  soar_network:
+    driver: bridge
+
+# Volumes
+volumes:
+  soar_db_data:
+  soar_redis_data:
+  soar_airflow_data:

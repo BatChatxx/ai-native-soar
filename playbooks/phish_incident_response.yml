@@ -1,0 +1,254 @@
+# Phishing Incident Response Playbook
+# Version: 1.0.0
+# Description: Automated response workflow for phishing email incidents
+
+---
+name: Phishing Incident Response
+version: "1.0.0"
+description: |
+  Automated workflow for investigating and responding to phishing incidents.
+  This playbook extracts IOCs, searches for related incidents,
+  and recommends containment actions.
+
+# Variables
+variables:
+  - name: email_subject
+    type: string
+    description: Subject line of the phishing email
+    required: true
+  
+  - name: sender_email
+    type: string
+    description: Email address of the sender
+    required: true
+  
+  - name: recipient_email
+    type: string
+    description: Email address of the victim
+    required: true
+  
+  - name: attachments
+    type: array
+    description: List of attachment filenames
+    required: false
+    default: []
+
+# Steps
+steps:
+  # Step 1: Create incident
+  - name: Create incident
+    action: incident.create
+    inputs:
+      title: "Phishing Email Detected: {{ email_subject }}"
+      severity: "medium"
+      source_type: "email"
+    on_success:
+      - next_step: extract_observables
+    on_failure:
+      - fail_playbook: true
+      - message: "Failed to create incident"
+
+  # Step 2: Extract observables from email
+  - name: Extract observables
+    action: evidence.extract
+    inputs:
+      email_subject: "{{ email_subject }}"
+      sender_email: "{{ sender_email }}"
+      recipient_email: "{{ recipient_email }}"
+      attachments: "{{ attachments }}"
+    on_success:
+      - next_step: search_siem
+      - next_step: lookup_sender
+      - next_step: lookup_attachments
+    on_failure:
+      - continue: true
+      - log_warning: "Failed to extract observables, continuing with available data"
+
+  # Step 3: Search SIEM for similar incidents
+  - name: Search SIEM
+    action: siem.search
+    inputs:
+      query: "email:{{ sender_email }} OR subject:{{ email_subject }}"
+      time_window: "7d"
+    on_success:
+      - set_variable: related_incidents
+        value: "{{ siem_results }}"
+      - next_step: evaluate_risk
+    on_failure:
+      - continue: true
+      - log_warning: "SIEM search failed, proceeding without correlation data"
+
+  # Step 4: Lookup sender reputation
+  - name: Lookup sender
+    action: virustotal.lookup_email
+    inputs:
+      email: "{{ sender_email }}"
+    on_success:
+      - set_variable: sender_reputation
+        value: "{{ virustotal_response }}"
+      - next_step: evaluate_risk
+    on_failure:
+      - continue: true
+      - log_warning: "VirusTotal lookup failed, proceeding without reputation data"
+
+  # Step 5: Lookup attachment hashes
+  - name: Lookup attachments
+    action: virustotal.lookup_file
+    inputs:
+      filenames: "{{ attachments }}"
+    on_success:
+      - set_variable: attachment_reputation
+        value: "{{ virustotal_response }}"
+      - next_step: evaluate_risk
+    on_failure:
+      - continue: true
+      - log_warning: "Attachment lookup failed, proceeding without hash data"
+
+  # Step 6: Evaluate overall risk
+  - name: Evaluate risk
+    action: risk.evaluate
+    inputs:
+      sender_reputation: "{{ sender_reputation }}"
+      attachment_reputation: "{{ attachment_reputation }}"
+      siem_correlation: "{{ related_incidents }}"
+    on_success:
+      - set_variable: risk_level
+        value: "{{ risk_evaluation }}"
+      - set_variable: recommended_action
+        value: "{{ risk_evaluation.action }}"
+      - next_step: ai_investigation
+    on_failure:
+      - continue: true
+      - log_warning: "Risk evaluation failed, using default recommendation"
+
+  # Step 7: AI-assisted investigation
+  - name: AI Investigation
+    action: ai.analyze
+    inputs:
+      email_subject: "{{ email_subject }}"
+      sender_email: "{{ sender_email }}"
+      attachments: "{{ attachments }}"
+      related_incidents: "{{ related_incidents }}"
+    on_success:
+      - set_variable: ai_findings
+        value: "{{ ai_response }}"
+      - next_step: request_approval
+    on_failure:
+      - continue: true
+      - log_warning: "AI investigation failed, using default workflow"
+
+  # Step 8: Request approval for containment (if high risk)
+  - name: Request approval
+    action: approval.request
+    inputs:
+      risk_level: "{{ risk_level }}"
+      recommended_action: "{{ recommended_action }}"
+      ai_findings: "{{ ai_findings }}"
+    on_success:
+      - set_variable: approval_request_id
+        value: "{{ approval_response.id }}"
+      - next_step: wait_for_decision
+    on_failure:
+      - fail_playbook: true
+      - message: "Failed to create approval request"
+
+  # Step 9: Wait for human decision
+  - name: Wait for decision
+    action: approval.wait
+    timeout: "24h"
+    on_approve:
+      - next_step: execute_containment
+    on_deny:
+      - next_step: close_incident
+      - message: "Containment action denied"
+
+  # Step 10: Execute containment (approved actions)
+  - name: Execute containment
+    action: containment.execute
+    inputs:
+      block_sender: "{{ block_sender }}"
+      block_domain: "{{ block_domain }}"
+      quarantine_attachments: "{{ quarantine_attachments }}"
+    on_success:
+      - next_step: update_incident
+      - next_step: notify_user
+    on_failure:
+      - log_error: "Containment action failed"
+      - next_step: update_incident
+
+  # Step 11: Update incident status
+  - name: Update incident
+    action: incident.update
+    inputs:
+      status: "resolved"
+      severity: "{{ severity }}"
+      description: "Phishing incident resolved with recommended actions"
+    on_success:
+      - next_step: close_incident
+    on_failure:
+      - log_error: "Failed to update incident"
+
+  # Step 12: Notify affected user
+  - name: Notify user
+    action: email.notify
+    inputs:
+      recipient: "{{ recipient_email }}"
+      subject: "Security Alert: Phishing Email Investigation"
+      body: "Your security team has investigated the reported phishing email. The email has been quarantined and blocked."
+    on_success:
+      - log_info: "User notified"
+    on_failure:
+      - log_warning: "Failed to notify user"
+      - continue: true
+
+  # Step 13: Close incident
+  - name: Close incident
+    action: incident.close
+    inputs:
+      status: "resolved"
+      resolved_reason: "Phishing email quarantined and sender blocked"
+    on_success:
+      - log_info: "Incident closed successfully"
+    on_failure:
+      - log_error: "Failed to close incident"
+
+# Conditions
+conditions:
+  # If sender reputation is known malicious, skip approval
+  - condition: "sender_reputation.is_malicious == true"
+    skip_steps:
+      - name: Request approval
+      - name: Wait for decision
+  
+  # If no attachments, skip attachment lookup
+  - condition: "attachments.length == 0"
+    skip_steps:
+      - name: Lookup attachments
+      - name: Lookup attachments
+
+# Timeout
+timeout: "4h"
+
+# Approval requirements
+approval_requirements:
+  - name: Containment
+    risk_level: "CONTAIN"
+    approvers:
+      - role: "analyst"
+      - role: "senior_analyst"
+    timeout: "2h"
+
+# Notifications
+notifications:
+  - on_incident_created:
+      channel: "slack"
+      message: "New phishing incident created: {{ email_subject }}"
+  - on_approval_requested:
+      channel: "slack"
+      message: "Containment action requires approval for {{ email_subject }}"
+  - on_incident_resolved:
+      channel: "email"
+      recipients:
+        - "{{ recipient_email }}"
+      message: "Phishing incident resolved"
+

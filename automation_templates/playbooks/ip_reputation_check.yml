@@ -1,0 +1,96 @@
+# IP Reputation Check Playbook
+# Checks IP reputation using VirusTotal and other sources
+# Risk: READ (can be executed automatically)
+
+version: "1.0"
+
+name: IP Reputation Check
+description: "Check IP reputation across multiple threat intelligence sources"
+category: "investigation"
+risk_level: "READ"
+requires_approval: false
+
+steps:
+  - id: vt_lookup
+    name: "VirusTotal IP Lookup"
+    type: "integration"
+    integration: "virustotal"
+    action: "lookup_ip"
+    input:
+      - parameter: "ip_address"
+        type: "string"
+        source: "observable"
+        required: true
+    output:
+      - parameter: "report"
+        type: "object"
+        description: "VT report"
+
+  - id: threatcrowd_lookup
+    name: "ThreatCrowd IP Lookup"
+    type: "integration"
+    integration: "threatcrowd"
+    action: "get_report"
+    input:
+      - parameter: "ip_address"
+        type: "string"
+        source: "observable"
+        required: true
+    output:
+      - parameter: "report"
+        type: "object"
+        description: "ThreatCrowd report"
+
+  - id: shodan_lookup
+    name: "Shodan IP Lookup"
+    type: "integration"
+    integration: "shodan"
+    action: "host"
+    input:
+      - parameter: "ip"
+        type: "string"
+        source: "observable"
+        required: true
+    output:
+      - parameter: "host"
+        type: "object"
+        description: "Shodan host data"
+
+  - id: ai_analysis
+    name: "AI Reputation Analysis"
+    type: "ai"
+    model: "qwen3.5:9b"
+    input:
+      - parameter: "vt_report"
+        type: "object"
+        source: "previous:vt_lookup"
+        required: false
+      - parameter: "threatcrowd_report"
+        type: "object"
+        source: "previous:threatcrowd_lookup"
+        required: false
+      - parameter: "shodan_host"
+        type: "object"
+        source: "previous:shodan_lookup"
+        required: false
+    output:
+      - parameter: "analysis"
+        type: "object"
+        description: "AI reputation analysis"
+
+  - id: create_finding
+    name: "Create IP Finding"
+    type: "action"
+    input:
+      - parameter: "incident_id"
+        type: "string"
+        source: "context"
+        required: true
+      - parameter: "findings"
+        type: "array"
+        source: "previous:ai_analysis"
+        required: false
+    output:
+      - parameter: "finding_id"
+        type: "string"
+        description: "Finding ID"
